@@ -1,0 +1,35 @@
+Package: Spatialsmooth
+Title: Spatial Transcriptomics Deconvolution Methods and Spatial smooth
+Version: 0.1.0
+Authors@R: person("njj", "yx", email = "njjyxl1006@gmail.com", role = c("aut", "cre"))
+Description: This package provides functions to run various spatial transcriptomics deconvolution methods including CARD, RCTD, SPOTlight, and SpatialDWLS.
+Depends: R (>= 4.2.0)
+Imports: 
+    tidyverse,
+    CARD,
+    data.table,
+    spacexr,
+    Giotto,
+    future,
+    dplyr,
+    SPOTlight,
+    igraph,
+    patchwork,
+    Matrix,
+    Seurat,
+    SeuratDisk,
+    STdeconvolve,
+    spdep,
+    spatialreg,
+    gridExtra,
+    msigdbr,
+    fields,
+    keras,
+    tensorflow,
+    reticulate
+Remotes: 
+    RubD/Giotto
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
