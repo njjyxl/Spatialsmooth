@@ -1,21 +1,3 @@
-# Sys.setenv(RETICULATE_PYTHON = "D:/Application/anaconda3/envs/python_3.10")
-
-# options(warn = -1)
-# suppressMessages(library(spacexr))
-# suppressMessages(library(Matrix))
-# suppressMessages(library(data.table))
-# suppressMessages(library(Seurat))
-# suppressMessages(library(SeuratDisk))
-# suppressMessages(library(gstat))
-# suppressMessages(library(sp))
-# suppressMessages(library(igraph))
-# suppressMessages(library(fields))
-# suppressMessages(library(keras))
-# suppressMessages(library(tensorflow))
-# suppressMessages(library(reticulate))
-
-# py_config()
-
 #' Smooth Multiple Matrices Using Autoencoder
 #'
 #' This function smooths multiple proportion matrices using an autoencoder model.
@@ -117,46 +99,52 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     tv_loss <- k_mean(h_diff) + k_mean(v_diff)
     return(tv_loss)
   }
+  structural_similarity_loss <- function(y_true, y_pred) {
+  mu_x <- k_mean(y_true, axis = c(2, 3), keepdims = TRUE)
+  mu_y <- k_mean(y_pred, axis = c(2, 3), keepdims = TRUE)
   
-#   multi_task_loss <- function(y_true, y_pred) {
-#     mse_loss <- k_mean(k_square(y_true[,,, 1] - y_pred[,,, 1]))
-#     tv_loss <- total_variation_loss(y_pred)
-#     lambda_mse <- 1.0
-#     lambda <- 0.001  
-#     pos_loss <- k_mean(k_square(y_true[,,, 2:n_features] - y_pred[,,, 2:n_features]))
-#     total_loss <- lambda_mse * mse_loss + lambda * tv_loss + 0.001 * pos_loss
-#     return(total_loss)
-#   }
-  weighted_mse_with_tv <- function(y_true, y_pred) {
-    # Assume the weight matrix is `weights`, with the same spatial dimensions as the input data
-    weights <- k_ones_like(y_true)
-#   weights <- create_weight_tensor(y_true)
-    # Calculate weighted mean squared error
-    squared_difference <- k_square(y_true - y_pred)
-    weighted_squared_difference <- k_sum(squared_difference * weights)
-    wmse <- weighted_squared_difference / k_sum(weights)
+  sigma_x <- k_mean(k_square(y_true - mu_x), axis = c(2, 3), keepdims = TRUE)
+  sigma_y <- k_mean(k_square(y_pred - mu_y), axis = c(2, 3), keepdims = TRUE)
+  sigma_xy <- k_mean((y_true - mu_x) * (y_pred - mu_y), axis = c(2, 3), keepdims = TRUE)
   
-    # Calculate total variation regularization term
-    tv_loss <- total_variation_loss(y_pred)
-    # 动态权重
-#    lambda <- k_exp(-k_get_value(autoencoder$optimizer$iterations) / 1000) * 0.1
-    
-#   pos_loss <- k_mean(k_square(y_true[,,, 2:n_features] - y_pred[,,, 2:n_features]))
-    lambda <- 0.01
-    # Add weighted mean squared error and total variation regularization term, and convert to scalar value
-#   total_loss <- k_mean(wmse + lambda * tv_loss + 0.001 * pos_loss)
-    total_loss <- k_mean(wmse + lambda * tv_loss)
-    return(total_loss)
+  c1 <- 0.01^2
+  c2 <- 0.03^2
+  
+  ssim <- (2 * mu_x * mu_y + c1) * (2 * sigma_xy + c2) / 
+          ((k_square(mu_x) + k_square(mu_y) + c1) * (sigma_x + sigma_y + c2))
+  
+  return(1 - k_mean(ssim))
   }
   
+  multi_task_loss <- function(y_true, y_pred) {
+    ss_loss <- structural_similarity_loss(y_true, y_pred)
+    tv_loss <- total_variation_loss(y_pred)
+    lambda <- 0.01
+    total_loss <- k_mean( 0.5 * ss_loss + lambda * tv_loss)
+    return(total_loss)
+  }
+#   weighted_mse_with_tv <- function(y_true, y_pred) {
+#     weights <- k_ones_like(y_true)
+#     # Calculate weighted mean squared error
+#     squared_difference <- k_square(y_true - y_pred)
+#     weighted_squared_difference <- k_sum(squared_difference * weights)
+#     wmse <- weighted_squared_difference / k_sum(weights)
+  
+#     # Calculate total variation regularization term
+#     tv_loss <- total_variation_loss(y_pred)
+#     lambda <- 0.01
+#     total_loss <- k_mean(wmse + lambda * tv_loss)
+#     return(total_loss)
+#   }
+  
   # 编译模型
-#   autoencoder %>% compile(optimizer = 'adam', loss = multi_task_loss)
-  autoencoder %>% compile(optimizer = 'adam', loss = weighted_mse_with_tv)
+  autoencoder %>% compile(optimizer = 'adam', loss = multi_task_loss)
+#   autoencoder %>% compile(optimizer = 'adam', loss = weighted_mse_with_tv)
   
   # 定义回调
   early_stopping <- callback_early_stopping(
     monitor = "val_loss", 
-    patience = 100, 
+    patience = 300, 
     restore_best_weights = TRUE
   )
   
@@ -194,20 +182,38 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     rownames(matrices_transposed[[i]]) <- rownames(proportion_matrices[[i]])
     colnames(matrices_transposed[[i]]) <- colnames(proportion_matrices[[i]])
   }
-  ssim <- function(x, y) {
-  mu_x <- mean(x)
-  mu_y <- mean(y)
-  var_x <- var(x)
-  var_y <- var(y)
-  covar_xy <- cov(c(x), c(y))
+  ssim <- function(im1, im2, M = 1) {
+   # 归一化
+   im1 <- im1 / max(im1)
+   im2 <- im2 / max(im2)
   
-  c1 <- (0.01 * 255)^2
-  c2 <- (0.03 * 255)^2
+   # 均值
+   mu1 <- mean(im1)
+   mu2 <- mean(im2)
   
-  num <- (2 * mu_x * mu_y + c1) * (2 * covar_xy + c2)
-  den <- (mu_x^2 + mu_y^2 + c1) * (var_x + var_y + c2)
+   # 标准差
+   sigma1 <- sqrt(mean((im1 - mu1) ^ 2))
+   sigma2 <- sqrt(mean((im2 - mu2) ^ 2))
   
-  return(num / den)
+   # 协方差
+   sigma12 <- mean((im1 - mu1) * (im2 - mu2))
+  
+   # 常数
+   k1 <- 0.01
+   k2 <- 0.03
+   L <- M
+   C1 <- (k1 * L) ^ 2
+   C2 <- (k2 * L) ^ 2
+   C3 <- C2 / 2
+  
+   # 计算 SSIM 组件
+   l12 <- (2 * mu1 * mu2 + C1) / (mu1 ^ 2 + mu2 ^ 2 + C1)
+   c12 <- (2 * sigma1 * sigma2 + C2) / (sigma1 ^ 2 + sigma2 ^ 2 + C2)
+   s12 <- (sigma12 + C3) / (sigma1 * sigma2 + C3)
+  
+   # 计算 SSIM
+   ssim_value <- l12 * c12 * s12
+   return(ssim_value)
   }
 
   calculate_tv <- function(matrix) {
@@ -234,7 +240,7 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
   normalized_ssim <- (ssim_values - min(ssim_values)) / (max(ssim_values) - min(ssim_values))
 
   # Calculate combined score (equal weight for both metrics)
-  combined_scores <- (normalized_cor + normalized_ssim + 0.05 * tv_values) / 3
+  combined_scores <- (1.5 * normalized_cor + normalized_ssim + 0.003 * tv_values) / 3
 
   # Find the index of the matrix with the highest combined score
   best_index <- which.max(combined_scores)
@@ -255,11 +261,10 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
   best_method <- c("CARD", "RCTD", "SPOTlight", "SpatialDWLS")[best_index]
   # best_method <- c("CARD", "RCTD")[best_index]
   cat("Best method:", best_method, "\n")
-
-#   # Print the scores
-#   cat("Correlation coefficient:", cor_values[best_index], "\n")
-#   cat("SSIM:", ssim_values[best_index], "\n")
-#   cat("TV:", tv_values[best_index], "\n")
+                                                                     
+  cat("Correlation coefficient:", cor_values[best_index], "\n")
+  cat("SSIM:", ssim_values[best_index], "\n")
+  cat("TV:", tv_values[best_index], "\n")
   cat("Combined score:", combined_scores[best_index], "\n")
 
   # Return the results
