@@ -18,7 +18,6 @@ Imports:
     AdRoit,
     parallel,
     doParallel,
-    gstat,
     dplyr,
     future,
     spatialreg,
