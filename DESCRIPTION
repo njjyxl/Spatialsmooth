@@ -34,7 +34,7 @@ Suggests:
     rmarkdown,
     BiocStyle
 Remotes: 
-    RubD/Giotto,
+    RubD/Giotto@cless,
     TaoYang-dev/AdRoit/AdRoit,
     ZxZhou4150/Redeconve
 License: MIT + file LICENSE
