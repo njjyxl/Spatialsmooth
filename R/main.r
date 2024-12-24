@@ -13,7 +13,10 @@ run_deconvolution_methods <- function(scrna_path, spatial_path, celltype_final, 
     CARD = run_card,
     RCTD = run_rctd,
     SPOTlight = run_spotlight,
-    SpatialDWLS = run_spatialdwls
+    SpatialDWLS = run_spatialdwls,
+    AdRoit = run_adroit,
+    Seurat = run_seurat,
+    Redeconve = run_redeconve
   )
   
   for (method_name in names(methods)) {

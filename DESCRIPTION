@@ -2,34 +2,47 @@ Package: Spatialsmooth
 Title: Spatial Transcriptomics Deconvolution Methods and Spatial smooth
 Version: 0.1.0
 Authors@R: person("njj", "yx", email = "njjyxl1006@gmail.com", role = c("aut", "cre"))
-Description: This package provides functions to run various spatial transcriptomics deconvolution methods including CARD, RCTD, SPOTlight, and SpatialDWLS.
+Description: This package provides functions to run various spatial transcriptomics deconvolution methods including CARD, RCTD, SPOTlight, SpatialDWLS,AdRoit,Seurat and Redeconve.
 Depends: R (>= 4.2.0)
-Imports: 
+Imports:
     tidyverse,
-    CARD,
-    data.table,
     spacexr,
-    Giotto,
-    future,
-    dplyr,
-    SPOTlight,
-    igraph,
-    patchwork,
     Matrix,
-    Seurat,
+    data.table,
+    Seurat (>= 4.4.0),
     SeuratDisk,
-    STdeconvolve,
-    spdep,
+    CARD,
+    SPOTlight,
+    Giotto,
+    Redeconve,
+    AdRoit,
+    parallel,
+    doParallel,
+    gstat,
+    dplyr,
+    future,
     spatialreg,
-    gridExtra,
-    msigdbr,
+    sp,
+    igraph,
     fields,
     keras,
     tensorflow,
-    reticulate
+    reticulate,
+    foreach
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    BiocStyle
 Remotes: 
-    RubD/Giotto
+    RubD/Giotto,
+    TaoYang-dev/AdRoit/AdRoit,
+    ZxZhou4150/Redeconve
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/njjyx/Spatialsmooth
+BugReports: https://github.com/njjyx/Spatialsmooth/issues

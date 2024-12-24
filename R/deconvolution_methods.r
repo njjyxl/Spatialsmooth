@@ -236,3 +236,111 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
   # 假设结果保存在SpatialDWLS_result变量中
   save(SpatialDWLS_result, file = file.path(output_path, "SpatialDWLS_result.Rdata"))
 }
+#' Run AdRoit deconvolution method
+#'
+#' @param scrna_path Path to scRNA-seq data
+#' @param spatial_path Path to spatial transcriptomics data
+#' @param output_path Path to save output
+#'
+#' @return AdRoit result
+#' @export
+run_adroit <- function(scrna_path, spatial_path, celltype_final, output_path) {
+    sc_obj <- LoadH5Seurat(scrna_path)
+    spatial_obj <- LoadH5Seurat(spatial_path)
+    sc_count <- as.matrix(sc_obj@assays$RNA@counts)
+    spatial_count <- as.matrix(spatial_obj@assays$RNA@counts)
+    spatial_location <- data.frame(colnames(spatial_obj))
+    spatial_location <- data.frame(spatial_obj@meta.data)
+    
+    colnames(spatial_location) <- c('x', 'y')
+    cellType <-  sc_obj@meta.data[,celltype_final]
+    intersect(rownames(spatial_count),rownames(sc_count))
+    
+    sc_count <- as.matrix(sc_count)
+    spatial_count <- as.matrix(spatial_count)
+    
+    single.ref = ref.build(sc_count,
+                       cellType,
+                       genes=intersect(rownames(spatial_count),rownames(sc_count)),
+                       normalize = "None",
+                       multi.sample.bulk = T,
+                       multi.sample.single = T,
+                       nbootsids=5, 
+                       minbootsize=50,
+                       silent = F)
+
+    print("single cell ref done")
+    st_count_ma=as.matrix(spatial_count)
+    st_count_ma = st_count_ma[intersect(rownames(st_count_ma),rownames(sc_count)),]
+  
+    registerDoSEQ()
+    result=AdRoit.est(
+         st_count_ma,
+         single.ref,
+         use.refvar = FALSE,
+         per.sample.adapt = FALSE,
+         silent = TRUE)
+
+    results=t(result%>% as.data.frame(check.names=F))%>% as.data.frame(check.names=F)
+    AdRoit_result <- results
+    save(AdRoit_result,file = file.path(output_path,"AdRoit_result.Rdata"))
+}
+
+#' Run Seurat deconvolution method
+#'
+#' @param scrna_path Path to scRNA-seq data
+#' @param spatial_path Path to spatial transcriptomics data
+#' @param output_path Path to save output
+#'
+#' @return Seurat result
+#' @export
+run_seurat <- function(scrna_path, spatial_path, celltype_final, output_path) {
+    sc_rna <- LoadH5Seurat(scrna_path)
+    spatial <- LoadH5Seurat(spatial_path)
+    
+    sc_rna <- SCTransform(sc_rna)
+    spatial <- SCTransform(spatial)
+    anchors <- FindTransferAnchors(reference = sc_rna, 
+                                   query = spatial, 
+                                   k.anchor = 10, 
+                                   k.filter = 200)
+  
+    predictions <- TransferData(anchorset = anchors, 
+                                refdata = sc_rna@meta.data[,celltype_final], 
+                                dims = 1:30)
+    Seurat_result <- predictions[,which(colnames(predictions) != "predicted.id" & colnames(predictions) != "prediction.score.max")]
+    colnames(Seurat_result) = gsub("prediction.score.", "", colnames(Seurat_result))
+    save(Seurat_result, file = file.path(output_path,"Seurat_result.Rdata"))
+}
+
+#' Run Redeconve deconvolution method
+#'
+#' @param scrna_path Path to scRNA-seq data
+#' @param spatial_path Path to spatial transcriptomics data
+#' @param output_path Path to save output
+#'
+#' @return Redeconve result
+#' @export
+run_redeconve <- function(scrna_path, spatial_path, celltype_final, output_path) {
+    sc_obj <- LoadH5Seurat(scrna_path)
+    spatial_obj <- LoadH5Seurat(spatial_path)
+    sc_count <- as.matrix(sc_obj@assays$RNA@counts)
+    spatial_count <- as.matrix(spatial_obj@assays$RNA@counts)
+    spatial_location <- data.frame(colnames(spatial_obj))
+    spatial_location <- data.frame(spatial_obj@meta.data)
+    
+    colnames(spatial_location) <- c('x', 'y')
+    cellType <-  sc_obj@meta.data
+    cellType$barcodes <- rownames(cellType)
+    cellType <- cellType[, c("barcodes", colnames(cellType)[-ncol(cellType)])]
+    
+    ## get reference
+    ref <- get.ref(sc_count, cellType, dopar = F)
+  
+    # 执行CARD解卷积
+    ## deconvolution
+    res.ct <- deconvoluting(ref, spatial_count, genemode = "def", hpmode = "auto", dopar = T, ncores = 8)
+    res.prop <- to.proportion(res.ct)
+    Redeconve_result <- t(res.prop)
+    save(Redeconve_result, file = file.path(output_path, "Redeconve_result.Rdata"))
+}
