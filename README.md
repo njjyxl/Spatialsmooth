@@ -7,14 +7,16 @@ You can install Spatialsmooth on Github with the following code.
 ## Dependencies  
 + R version >= 4.2.0.  
 + R packages: tidyverse,spacexr,Matrix,data.table,Seurat (>= 4.4.0),SeuratDisk,CARD,SPOTlight,Giotto,Redeconve,AdRoit, parallel,doParallel,dplyr,future,spatialreg,sp,igraph,fields,keras,tensorflow,reticulate,foreach.  
-`# install devtools if necessary
-install.packages('devtools')`
+```  
+# install devtools if necessary  
+install.packages('devtools')  
 
-`# install the CARD package`
-`devtools::install_github('njjyxl/Spatialsmooth', ref = "master")`
+# install the CARD package  
+devtools::install_github('njjyxl/Spatialsmooth', ref = "master")  
 
-`# load package`
-`library(CARD)` 
+# load package  
+library(CARD)  
+```
 The R package has been installed successfully on Operating systems:  
 + CentOS Linux release 7.5.1804 (Core)  
 + Windows 11  
