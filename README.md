@@ -11,11 +11,11 @@ You can install Spatialsmooth on Github with the following code.
 # install devtools if necessary  
 install.packages('devtools')  
 
-# install the CARD package  
+# install the Spatialsmooth package  
 devtools::install_github('njjyxl/Spatialsmooth', ref = "master")  
 
 # load package  
-library(CARD)  
+library(Spatialsmooth)  
 ```
 The R package has been installed successfully on Operating systems:  
 + CentOS Linux release 7.5.1804 (Core)  
