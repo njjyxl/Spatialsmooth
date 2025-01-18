@@ -34,7 +34,7 @@ SpatialDWLS_matrix <- as.matrix(SpatialDWLS_result)
 load(file = 'data/TestData/seqFISH+/pos.Rdata')
 pos2 <- pos
 
-# seqFISH+
+# Make the column names of the matrix names the same
 colnames(SPOTlight_matrix) = gsub("\\.", "_", colnames(SPOTlight_matrix))
 
 CARD_matrix <- CARD_matrix[,colnames(RCTD_matrix)]
@@ -52,7 +52,7 @@ RCTD_matrix
 SPOTlight_matrix
 SpatialDWLS_matrix
 
-# 准备数据
+# Prepare data
 proportion_matrices <- list(CARD_matrix, RCTD_matrix, SPOTlight_matrix, SpatialDWLS_matrix)
 
 result <- smooth_multiple_matrices(
@@ -60,10 +60,10 @@ result <- smooth_multiple_matrices(
   pos2,
   epochs = 4000,
   batch_size = 5,
-  cropping = list(c(0, 9), c(9, 1))  # 自定义裁剪参数
+  cropping = list(c(0, 9), c(9, 1))  # Custom Cropping Parameters
 )
 
-# 获取训练好的模型和训练历史
+# Get trained models and training history
 trained_model <- result$model
 training_history <- result$history
 # smoothed_matrices <- result$smoothed_matrices
