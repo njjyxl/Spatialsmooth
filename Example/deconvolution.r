@@ -28,7 +28,7 @@ celltype_final = 'celltype'
 python_path = "D:/Application/anaconda3/envs/python_3.10"
 output_path = 'output/test_output/'
 
-# 运行所有方法
+# Run all methods
 run_deconvolution_methods(scrna_path, spatial_path,celltype_final, python_path, output_path)
 
 
