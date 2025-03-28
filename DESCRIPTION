@@ -3,7 +3,7 @@ Title: Spatial Transcriptomics Deconvolution Methods and Spatial smooth
 Version: 0.1.0
 Authors@R: person("njj", "yx", email = "njjyxl1006@gmail.com", role = c("aut", "cre"))
 Description: This package provides functions to run various spatial transcriptomics deconvolution methods including CARD, RCTD, SPOTlight, SpatialDWLS,AdRoit,Seurat and Redeconve.
-Depends: R (>= 4.2.0)
+Depends: R (>= 4.2.1)
 Imports:
     tidyverse,
     spacexr,
@@ -16,6 +16,7 @@ Imports:
     Giotto,
     Redeconve,
     AdRoit,
+    SpatialDecon,
     parallel,
     doParallel,
     dplyr,

@@ -15,12 +15,12 @@
 #' @importFrom keras layer_input layer_conv_2d layer_max_pooling_2d layer_dropout layer_upsampling_2d layer_cropping_2d keras_model
 #' @importFrom tensorflow k_abs k_mean k_square
 smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 16, epochs = 4000, batch_size = 5, cropping = list(c(0, 9), c(9, 1))) {
-  # 确保所有矩阵有相同的维度
+  # Ensure all matrix have the same dimensions
   n_samples <- length(proportion_matrices)
   n_pixels <- nrow(proportion_matrices[[1]])
   n_cell_types <- ncol(proportion_matrices[[1]])
   
-  # 位置编码函数
+  # posing encoding
   pos_encoding <- function(pos, freq) {
     angle_rads_x <- matrix(pos$x, ncol = length(freq), nrow = nrow(pos)) * freq
     angle_rads_y <- matrix(pos$y, ncol = length(freq), nrow = nrow(pos)) * freq
@@ -36,7 +36,7 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     return(pos_encoding)
   }
   
-  # 执行位置编码
+  
   freq <- 2^seq(0, (n_pos_features/2 - 1))
   pos_encoded <- pos_encoding(pos, freq)
   
@@ -50,7 +50,7 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     }
   }
   
-  # 定义模型架构
+  
   input_img <- layer_input(shape = dim(x_train)[-1])
   
   # Encoder
@@ -87,12 +87,12 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     layer_dropout(rate = 0.25) %>%
     layer_conv_2d(filters = 16, kernel_size = 3, padding = "same", activation = "relu") %>%
     layer_conv_2d(filters = n_features, kernel_size = 3, padding = "same", activation = "softmax") %>%
-    layer_cropping_2d(cropping = cropping)  # 使用传入的cropping参数
+    layer_cropping_2d(cropping = cropping)  # Use the incoming cropping parameter
   
-  # 定义自动编码器
+  
   autoencoder <- keras_model(input_img, x)
   
-  # 定义损失函数
+  # loss function
   total_variation_loss <- function(x) {
     h_diff <- k_abs(x[, 1:(n_pixels - 1), , ] - x[, 2:n_pixels, , ])
     v_diff <- k_abs(x[, , 1:(n_cell_types - 1), ] - x[, , 2:n_cell_types, ])
@@ -123,25 +123,10 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     total_loss <- k_mean( 0.5 * ss_loss + lambda * tv_loss)
     return(total_loss)
   }
-#   weighted_mse_with_tv <- function(y_true, y_pred) {
-#     weights <- k_ones_like(y_true)
-#     # Calculate weighted mean squared error
-#     squared_difference <- k_square(y_true - y_pred)
-#     weighted_squared_difference <- k_sum(squared_difference * weights)
-#     wmse <- weighted_squared_difference / k_sum(weights)
   
-#     # Calculate total variation regularization term
-#     tv_loss <- total_variation_loss(y_pred)
-#     lambda <- 0.01
-#     total_loss <- k_mean(wmse + lambda * tv_loss)
-#     return(total_loss)
-#   }
   
-  # 编译模型
   autoencoder %>% compile(optimizer = 'adam', loss = multi_task_loss)
-#   autoencoder %>% compile(optimizer = 'adam', loss = weighted_mse_with_tv)
   
-  # 定义回调
   early_stopping <- callback_early_stopping(
     monitor = "val_loss", 
     patience = 300, 
@@ -154,7 +139,7 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     save_best_only = TRUE
   )
   
-  # 训练模型
+  # training model
   history <- autoencoder %>% fit(
     x_train, x_train,
     epochs = epochs,
@@ -165,40 +150,29 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
   )
   # Predict the smoothed proportions
   smoothed_prop <- autoencoder %>% predict(x_train)
-  
-  # Reshape the smoothed proportions back to the original shape
   smoothed_prop <- array_reshape(smoothed_prop, dim = c(n_samples, n_pixels, n_cell_types, n_features))
-
-  # Extract the smoothed proportion matrices
   smoothed_matrices <- lapply(1:n_samples, function(i) smoothed_prop[i, , , 1])
-
-  # Normalize the smoothed proportions to sum up to 1 for each pixel
   smoothed_matrices <- lapply(smoothed_matrices, function(mat) apply(mat, 1, function(x) x / sum(x)))
-
   matrices_transposed <- lapply(smoothed_matrices, t)
 
-  # Assign row and column names to the smoothed matrices
+  
   for (i in 1:n_samples) {
     rownames(matrices_transposed[[i]]) <- rownames(proportion_matrices[[i]])
     colnames(matrices_transposed[[i]]) <- colnames(proportion_matrices[[i]])
   }
   ssim <- function(im1, im2, M = 1) {
-   # 归一化
+   
    im1 <- im1 / max(im1)
    im2 <- im2 / max(im2)
   
-   # 均值
    mu1 <- mean(im1)
    mu2 <- mean(im2)
   
-   # 标准差
    sigma1 <- sqrt(mean((im1 - mu1) ^ 2))
    sigma2 <- sqrt(mean((im2 - mu2) ^ 2))
   
-   # 协方差
    sigma12 <- mean((im1 - mu1) * (im2 - mu2))
   
-   # 常数
    k1 <- 0.01
    k2 <- 0.03
    L <- M
@@ -206,12 +180,10 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
    C2 <- (k2 * L) ^ 2
    C3 <- C2 / 2
   
-   # 计算 SSIM 组件
    l12 <- (2 * mu1 * mu2 + C1) / (mu1 ^ 2 + mu2 ^ 2 + C1)
    c12 <- (2 * sigma1 * sigma2 + C2) / (sigma1 ^ 2 + sigma2 ^ 2 + C2)
    s12 <- (sigma12 + C3) / (sigma1 * sigma2 + C3)
   
-   # 计算 SSIM
    ssim_value <- l12 * c12 * s12
    return(ssim_value)
   }
@@ -235,31 +207,22 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
   ssim_values <- scores["ssim", ]
   tv_values <- scores["TV", ]
 
-  # Normalize the scores
   normalized_cor <- (cor_values - min(cor_values)) / (max(cor_values) - min(cor_values))
   normalized_ssim <- (ssim_values - min(ssim_values)) / (max(ssim_values) - min(ssim_values))
 
-  # Calculate combined score (equal weight for both metrics)
   combined_scores <- (1.5 * normalized_cor + normalized_ssim + 0.003 * tv_values) / 3
-
-  # Find the index of the matrix with the highest combined score
   best_index <- which.max(combined_scores)
 
-  # Select the best matrix
   best_matrix <- matrices_transposed[[best_index]]
-
-  # Assign row and column names to the best matrix
   rownames(best_matrix) <- rownames(proportion_matrices[[best_index]])
   colnames(best_matrix) <- colnames(proportion_matrices[[best_index]])
 
-  # Print the best matrix
   cat("Best Smoothed Matrix (from method", best_index, "):\n")
   print(best_matrix)
   smoothed_matrix <- best_matrix
 
-  # Print which method produced the best result
   best_method <- c("CARD", "RCTD", "SPOTlight", "SpatialDWLS")[best_index]
-  # best_method <- c("CARD", "RCTD")[best_index]
+  
   cat("Best method:", best_method, "\n")
                                                                      
   cat("Correlation coefficient:", cor_values[best_index], "\n")
@@ -273,6 +236,4 @@ smooth_multiple_matrices <- function(proportion_matrices, pos, n_pos_features = 
     history = history,
     smoothed_matrices = smoothed_matrix
   ))
-  # 返回训练好的模型和训练历史
-#   return(list(model = autoencoder, history = history))
 }

@@ -56,29 +56,25 @@ run_rctd <- function(scrna_path, spatial_path, celltype_final, output_path) {
           sc_obj = sc_obj[,sc_obj@meta.data[,celltype_final]!=i]
       }
   sc_obj@meta.data[,celltype_final] <- as.factor(as.character(sc_obj@meta.data[,celltype_final]))
-  ### Load in/preprocess your data, this might vary based on your file type
+  
   print('prepare data')
   counts <- data.frame(sc_obj@assays$RNA@counts)
   colnames(counts) <- colnames(sc_obj)
   meta_data <- data.frame(sc_obj@meta.data[,celltype_final])
   cell_types <- meta_data[,1]
-  # 使用 gsub 函数替换或移除特殊字符
+  
   cell_types <- as.character(cell_types)
-  cell_types <- gsub("/", "_", cell_types) # 将 / 替换为 _
-  # cell_types <- as.factor(cell_types)
+  cell_types <- gsub("/", "_", cell_types) 
   names(cell_types) <- rownames(sc_obj@meta.data)
   cell_types <- as.factor(cell_types)
-#   nUMI_df <- data.frame(colSums(sc_obj@assays$RNA@counts))
+
   nUMI_df <- data.frame(colSums(counts))
-#   nUMI <- nUMI_df$colSums.sc_obj.assays.RNA
+
   nUMI <- nUMI_df$colSums
   names(nUMI) <- rownames(nUMI_df)
 
-  ### Create the Reference object
-  # reference <- Reference(counts, cell_types, nUMI, min_UMI=1)
   reference <- Reference(counts, cell_types, nUMI)
-  #> Warning in Reference(counts, cell_types, nUMI): Reference: nUMI does not match colSums of counts. If this is unintended, please correct this discrepancy. If this
-  #>             is intended, there is no problem.
+
   spatial_obj <- LoadH5Seurat(spatial_path)
   counts <- data.frame(spatial_obj@assays$RNA@counts) # load in counts matrix
   colnames(counts) <- colnames(spatial_obj)
@@ -98,12 +94,6 @@ run_rctd <- function(scrna_path, spatial_path, celltype_final, output_path) {
   spatialRNA <- myRCTD@spatialRNA
   RCTD_result <- norm_weights
   
-#   return(list(myRCTD = myRCTD, 
-#               results = results, 
-#               norm_weights = norm_weights, 
-#               cell_type_names = cell_type_names, 
-#               spatialRNA = spatialRNA))
-  # 假设结果保存在RCTD_result变量中
   save(RCTD_result, file = file.path(output_path, "RCTD_result.Rdata"))
 }
 
@@ -148,8 +138,6 @@ run_spotlight <- function(scrna_path, spatial_path, celltype_final, output_path)
   decon_mtrx <- spotlight_ls[[2]]
   rownames(decon_mtrx) <- colnames(st@assays$RNA@counts)
   SPOTlight_result <- decon_mtrx[, which(colnames(decon_mtrx) != "res_ss")]
-#   return(list(spotlight_ls = spotlight_ls, SPOTlight_result = SPOTlight_result))
-  # 假设结果保存在SPOTlight_result变量中
   save(SPOTlight_result, file = file.path(output_path, "SPOTlight_result.Rdata"))
 }
 
@@ -174,8 +162,6 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
   st_data <- normalizeGiotto(gobject = st_data)
   st_data <- calculateHVG(gobject = st_data)
   gene_metadata = fDataDT(st_data)
-#   featgenes = gene_metadata[hvg == 'yes']$gene_ID
-  # featgenes = gene_metadata[hvg == 'no']$gene_ID
   gene_metadatas <- data.frame(gene_metadata)
   featgenes <- gene_metadatas[gene_metadatas$hvg == 'yes', "gene_ID"]
 
@@ -192,8 +178,6 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
   sc_data <- normalizeGiotto(gobject = sc_data)
   sc_data <- calculateHVG(gobject = sc_data)
   gene_metadata = fDataDT(sc_data)
-#   featgenes = gene_metadata[hvg == 'yes']$gene_ID
-  # featgenes = gene_metadata[hvg == 'no']$gene_ID
   gene_metadatas <- data.frame(gene_metadata)
   featgenes <- gene_metadatas[gene_metadatas$hvg == 'yes', "gene_ID"]
   sc_data <- runPCA(gobject = sc_data, genes_to_use = featgenes, scale_unit = F)
@@ -207,7 +191,6 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
                                                      min_genes = 20,
                                                      min_expr_gini_score = 0.5,
                                                      min_det_gini_score = 0.5)
-#   topgenes_gini = gini_markers_subclusters[, head(.SD, 100), by = 'cluster']
   topgenes_gini <- gini_markers_subclusters %>%
   group_by(cluster) %>%
   slice_head(n = 100) %>%
@@ -219,21 +202,17 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
   for (i in as.character(unique(sc_obj@meta.data[,celltype_final]))){
     Sig<-cbind(Sig,(apply(ExprSubset,1,function(y) mean(y[which(sc_obj@meta.data[,celltype_final]==i)]))))
   }
-#   print(dim(ExprSubset))
-#   print(dim(Sig))
-#   print(length(unique(sc_obj@meta.data[,celltype_final])))
 
-#   Sig <- as.matrix(Sig)
   colnames(Sig)<-as.character(unique(sc_obj@meta.data[,celltype_final]))
                           
   st_data <- runDWLSDeconv(st_data,sign_matrix = Sig, n_cell = 20)
-  # 提取 DWLS 数据
+  
   dwls_data <- as.matrix(st_data@spatial_enrichment$DWLS)
-  # 将第一列设为行名
+  
   rownames(dwls_data) <- dwls_data[, 1]
-  # 删除第一列
+  
   SpatialDWLS_result <- dwls_data[, -1]
-  # 假设结果保存在SpatialDWLS_result变量中
+  
   save(SpatialDWLS_result, file = file.path(output_path, "SpatialDWLS_result.Rdata"))
 }
 #' Run AdRoit deconvolution method
@@ -337,10 +316,63 @@ run_redeconve <- function(scrna_path, spatial_path, celltype_final, output_path)
     ## get reference
     ref <- get.ref(sc_count, cellType, dopar = F)
   
-    # 执行CARD解卷积
+    
     ## deconvolution
     res.ct <- deconvoluting(ref, spatial_count, genemode = "def", hpmode = "auto", dopar = T, ncores = 8)
     res.prop <- to.proportion(res.ct)
     Redeconve_result <- t(res.prop)
     save(Redeconve_result, file = file.path(output_path, "Redeconve_result.Rdata"))
+}
+                          
+#' Run SpatialDecon deconvolution method
+#'
+#' @param scrna_path Path to scRNA-seq data
+#' @param spatial_path Path to spatial transcriptomics data
+#' @param output_path Path to save output
+#'
+#' @return SpatialDecon result
+#' @export
+run_spatialdecon <- function(scrna_path, spatial_path, celltype_final, output_path) {
+    sc_obj <- LoadH5Seurat(scrna_path)
+    spatial_obj <- LoadH5Seurat(spatial_path)
+    sc_count <- as.matrix(sc_obj@assays$RNA@counts)
+    spatial_count <- as.matrix(spatial_obj@assays$RNA@counts)
+    spatial_location <- data.frame(colnames(spatial_obj))
+    spatial_location <- data.frame(spatial_obj@meta.data)
+    
+    colnames(spatial_location) <- c('x', 'y')
+    cellType <- sc_obj@meta.data[, celltype_final, drop = FALSE]
+    st_counts_norm = sweep(spatial_count, 2, colSums(spatial_count), "/") * mean(colSums(spatial_count))
+    st_object=CreateSeuratObject(counts=st_counts_norm,assay="Spatial")
+    stopifnot(setequal(colnames(st_object),rownames(spatial_location)))
+    st_object=AddMetaData(st_object,spatial_location[colnames(st_object),1],col.name="x")
+    st_object=AddMetaData(st_object,spatial_location[colnames(st_object),2],col.name="y")
+
+    stopifnot(all(colnames(sc_count)==rownames(cellType)))
+
+    sc_counts_matrix=as.matrix(sc_count)
+    sc_counts_matrix=Matrix::Matrix((sc_counts_matrix),sparse=TRUE)
+    sc_labels_df=data.frame(cell_barcodes=rownames(cellType),sc_labels=cellType$celltype)
+    sc_matrix <- create_profile_matrix(
+        mtx = sc_counts_matrix,          
+        cellAnnots = sc_labels_df,  
+        cellTypeCol = "sc_labels",  
+        cellNameCol = "cell_barcodes",           
+        matrixName = "custom_cell_type_matrix", 
+        outDir = NULL, 
+        normalize = TRUE,
+        minCellNum = 1,
+        minGenes = 1
+    ) 
+  
+    
+    ## deconvolution
+    res = runspatialdecon(object = st_object,
+                      bg = 0.01,
+                      X = sc_matrix,
+                      align_genes = TRUE)
+    weights=t(res$beta)
+    norm_weights=sweep(weights, 1, rowSums(weights), "/")
+    SpatialDecon_result <- norm_weights
+    save(SpatialDecon_result, file = file.path(output_path, "SpatialDecon_result.Rdata"))
 }
