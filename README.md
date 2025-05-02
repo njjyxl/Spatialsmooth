@@ -5,7 +5,7 @@ CAE for spatial smoothing aims at smoothing the cell type matrix obtained by var
 ## Installation  
 You can install Spatialsmooth on Github with the following code.  
 ## Dependencies  
-+ R version >= 4.2.0.  
++ R version >= 4.3.0.  
 + R packages: tidyverse,spacexr,Matrix,data.table,Seurat(>=4.4.0),SeuratDisk,CARD,SPOTlight,Giotto,Redeconve,AdRoit,parallel, doParallel,dplyr,future, spatialreg,sp,igraph,fields,keras,tensorflow,reticulate,foreach.  
 ```  
 # install devtools if necessary  
