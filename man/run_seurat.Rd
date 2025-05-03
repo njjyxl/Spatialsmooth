@@ -21,3 +21,25 @@ Seurat result
 \description{
 Run Seurat deconvolution method
 }
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+output_path = 'output/'
+sc_rna <- LoadH5Seurat(scrna_path)
+spatial <- LoadH5Seurat(spatial_path)
+    
+sc_rna <- SCTransform(sc_rna)
+spatial <- SCTransform(spatial)
+anchors <- FindTransferAnchors(reference = sc_rna, 
+                               query = spatial, 
+                               k.anchor = 10, 
+                               k.filter = 200)
+  
+predictions <- TransferData(anchorset = anchors, 
+                            refdata = sc_rna@meta.data[,celltype_final], 
+                            dims = 1:30)
+Seurat_result <- predictions[,which(colnames(predictions) != "predicted.id" & colnames(predictions) != "prediction.score.max")]
+colnames(Seurat_result) = gsub("prediction.score.", "", colnames(Seurat_result))
+save(Seurat_result, file = file.path(output_path,"Seurat_result.Rdata"))
+}

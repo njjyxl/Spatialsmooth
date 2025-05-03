@@ -2,6 +2,7 @@
 #'
 #' This function smooths multiple proportion matrices using an autoencoder model.
 #'
+#' @import Matrix tensorflow reticulate
 #' @param proportion_matrices A list of proportion matrices to be smoothed.
 #' @param pos A data frame with x and y coordinates for each pixel.
 #' @param n_pos_features Number of positional encoding features. Default is 16.

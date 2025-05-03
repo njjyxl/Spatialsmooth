@@ -23,6 +23,19 @@ run_deconvolution_methods(
 
 \item{output_path}{Directory to save output}
 }
+\value{
+all deconvolution result
+}
 \description{
 Run all deconvolution methods
+}
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+ptrhon_path = "D:/Application/anaconda3/envs/python_3.10"
+output_path = 'output/'
+
+# Run all methods
+run_deconvolution_methods(scrna_path, spatial_path,celltype_final, python_path, output_path)
 }

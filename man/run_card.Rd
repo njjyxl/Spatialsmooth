@@ -16,8 +16,38 @@ run_card(scrna_path, spatial_path, celltype_final, output_path)
 \item{output_path}{Path to save output}
 }
 \value{
-CARD object
+CARD_result
 }
 \description{
 Run CARD deconvolution method
+}
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+output_path = 'output/'
+
+sc_obj <- LoadH5Seurat(scrna_path)
+spatial_obj <- LoadH5Seurat(spatial_path)
+sc_count <- as.matrix(sc_obj@assays$RNA@counts)
+spatial_count <- as.matrix(spatial_obj@assays$RNA@counts)
+spatial_location <- data.frame(spatial_obj@meta.data)
+colnames(spatial_location) <- c('x', 'y')
+cellType <- sc_obj@meta.data
+
+CARD_obj = createCARDObject(
+  sc_count = sc_count,
+  sc_meta = cellType,
+  spatial_count = spatial_count,
+  spatial_location = spatial_location,
+  ct.varname = "celltype",
+  ct.select = unique(cellType$celltype),
+  sample.varname = "sampleInfo",
+  minCountGene = 100,
+  minCountSpot = 5
+)
+
+CARD_obj = CARD_deconvolution(CARD_object = CARD_obj)
+CARD_result <- CARD_obj@Proportion_CARD
+save(CARD_result, file = file.path(output_path, "CARD_result.Rdata"))
 }

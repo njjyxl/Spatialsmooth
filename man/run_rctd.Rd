@@ -21,3 +21,61 @@ RCTD result
 \description{
 Run RCTD deconvolution method
 }
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+output_path = 'output/'
+
+sc_obj <- LoadH5Seurat(scrna_path)
+diff_list <- list()
+c = 0
+for (i in seq_along(unique(sc_obj@meta.data[,celltype_final]))){
+    if(sum(sc_obj@meta.data[,celltype_final] == unique(sc_obj@meta.data[,celltype_final])[i]) < 1){
+        c = c+1
+        diff_list[[c]] <- unique(sc_obj@meta.data[,celltype_final])[i]
+        print(unique(sc_obj@meta.data[,celltype_final])[i])
+    }
+}
+for (i in diff_list){
+        sc_obj = sc_obj[,sc_obj@meta.data[,celltype_final]!=i]
+    }
+sc_obj@meta.data[,celltype_final] <- as.factor(as.character(sc_obj@meta.data[,celltype_final]))
+  
+print('prepare data')
+counts <- data.frame(sc_obj@assays$RNA@counts)
+colnames(counts) <- colnames(sc_obj)
+meta_data <- data.frame(sc_obj@meta.data[,celltype_final])
+cell_types <- meta_data[,1]
+  
+cell_types <- as.character(cell_types)
+cell_types <- gsub("/", "_", cell_types) 
+names(cell_types) <- rownames(sc_obj@meta.data)
+cell_types <- as.factor(cell_types)
+
+nUMI_df <- data.frame(colSums(counts))
+
+nUMI <- nUMI_df$colSums
+names(nUMI) <- rownames(nUMI_df)
+
+reference <- Reference(counts, cell_types, nUMI)
+
+spatial_obj <- LoadH5Seurat(spatial_path)
+counts <- data.frame(spatial_obj@assays$RNA@counts) # load in counts matrix
+colnames(counts) <- colnames(spatial_obj)
+coords <- data.frame(colnames(spatial_obj))
+coords <- data.frame(spatial_obj@meta.data)
+nUMI <- colSums(counts) # In this case, total counts per pixel is nUMI
+  
+puck <- SpatialRNA(coords, counts, nUMI)
+myRCTD <- create.RCTD(puck, reference, max_cores = 8, CELL_MIN_INSTANCE = 1)
+myRCTD <- run.RCTD(myRCTD, doublet_mode = 'full')
+results <- myRCTD@results
+weights <- as.matrix(results$weights)
+norm_weights = sweep(results$weights, 1, rowSums(weights), '/') 
+cell_type_names <- myRCTD@cell_type_info$info[[2]] #list of cell type names
+spatialRNA <- myRCTD@spatialRNA
+RCTD_result <- norm_weights
+  
+save(RCTD_result, file = file.path(output_path, "RCTD_result.Rdata"))
+}

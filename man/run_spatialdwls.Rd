@@ -29,3 +29,74 @@ SpatialDWLS result
 \description{
 Run SpatialDWLS deconvolution method
 }
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+ptrhon_path = "D:/Application/anaconda3/envs/python_3.10"
+output_path = 'output/'
+
+instrs = createGiottoInstructions(python_path = python_path)
+  
+sc_obj <- LoadH5Seurat(scrna_path)
+spatial_obj <- LoadH5Seurat(spatial_path)
+st_data <- createGiottoObject(
+    raw_exprs = spatial_obj@assays$RNA@counts,
+    instructions = instrs
+)
+st_data <- normalizeGiotto(gobject = st_data)
+st_data <- calculateHVG(gobject = st_data)
+gene_metadata = fDataDT(st_data)
+gene_metadatas <- data.frame(gene_metadata)
+featgenes <- gene_metadatas[gene_metadatas$hvg == 'yes', "gene_ID"]
+
+st_data <- runPCA(gobject = st_data, genes_to_use = featgenes, scale_unit = FALSE)
+signPCA(st_data, genes_to_use = featgenes, scale_unit = FALSE)
+st_data <- runUMAP(st_data, dimensions_to_use = 1:10)
+st_data <- createNearestNetwork(gobject = st_data, dimensions_to_use = 1:10, k = 15)
+st_data <- doLeidenCluster(gobject = st_data, resolution = 0.4, n_iterations = 1000)
+
+sc_data <- createGiottoObject(
+    raw_exprs = sc_obj@assays$RNA@counts,
+    instructions = instrs
+)
+sc_data <- normalizeGiotto(gobject = sc_data)
+sc_data <- calculateHVG(gobject = sc_data)
+gene_metadata = fDataDT(sc_data)
+gene_metadatas <- data.frame(gene_metadata)
+featgenes <- gene_metadatas[gene_metadatas$hvg == 'yes', "gene_ID"]
+sc_data <- runPCA(gobject = sc_data, genes_to_use = featgenes, scale_unit = FALSE)
+signPCA(sc_data, genes_to_use = featgenes, scale_unit = FALSE)
+sc_data@cell_metadata$leiden_clus <- as.character(sc_obj@meta.data[,celltype_final])
+  
+gini_markers_subclusters = findMarkers_one_vs_all(gobject = sc_data,
+                                                   method = 'gini',
+                                                   expression_values = 'normalized',
+                                                   cluster_column = 'leiden_clus',
+                                                   min_genes = 20,
+                                                   min_expr_gini_score = 0.5,
+                                                   min_det_gini_score = 0.5)
+topgenes_gini <- gini_markers_subclusters %>%
+group_by(cluster) %>%
+slice_head(n = 100) %>%
+ungroup()
+topgenes_gini <- data.frame(topgenes_gini)
+sc_norm_exp <- 2^(sc_data@norm_expr)-1
+ExprSubset<-sc_norm_exp[as.character(topgenes_gini$genes),]
+Sig<-NULL
+for (i in as.character(unique(sc_obj@meta.data[,celltype_final]))){
+  Sig<-cbind(Sig,(apply(ExprSubset,1,function(y) mean(y[which(sc_obj@meta.data[,celltype_final]==i)]))))
+}
+
+colnames(Sig)<-as.character(unique(sc_obj@meta.data[,celltype_final]))
+                          
+st_data <- runDWLSDeconv(st_data,sign_matrix = Sig, n_cell = 20)
+  
+dwls_data <- as.matrix(st_data@spatial_enrichment$DWLS)
+  
+rownames(dwls_data) <- dwls_data[, 1]
+  
+SpatialDWLS_result <- dwls_data[, -1]
+  
+save(SpatialDWLS_result, file = file.path(output_path, "SpatialDWLS_result.Rdata"))
+}

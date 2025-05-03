@@ -21,3 +21,42 @@ SPOTlight result
 \description{
 Run SPOTlight deconvolution method
 }
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+output_path = 'output/'
+
+sc <- LoadH5Seurat(scrna_path)
+st <- LoadH5Seurat(spatial_path)
+
+#set.seed(123)
+sc <- Seurat::SCTransform(sc, verbose = FALSE)
+
+Idents(sc) <- sc@meta.data[,celltype_final]
+
+cluster_markers_all <- FindAllMarkers(object = sc, 
+                                              assay = "SCT",
+                                              slot = "data",
+                                              verbose = TRUE, 
+                                              only.pos = TRUE)
+spatial_location <- data.frame(colnames(st))
+spatial_location <- data.frame(st@meta.data)
+spotlight_ls <- spotlight_deconvolution(
+  se_sc = sc,
+  counts_spatial = st@assays$RNA@counts,
+  clust_vr = celltype_final,
+  cluster_markers = cluster_markers_all,
+  cl_n = 100,
+  hvg = 3000,
+  ntop = NULL,
+  transf = "uv",
+  method = "nsNMF",
+  min_cont = 0
+)
+
+decon_mtrx <- spotlight_ls[[2]]
+rownames(decon_mtrx) <- colnames(st@assays$RNA@counts)
+SPOTlight_result <- decon_mtrx[, which(colnames(decon_mtrx) != "res_ss")]
+save(SPOTlight_result, file = file.path(output_path, "SPOTlight_result.Rdata"))
+}

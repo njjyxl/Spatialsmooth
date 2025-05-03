@@ -21,3 +21,45 @@ AdRoit result
 \description{
 Run AdRoit deconvolution method
 }
+\examples{
+library(AdRoit)
+
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+output_path = 'output/'
+sc_obj <- LoadH5Seurat(scrna_path)
+spatial_obj <- LoadH5Seurat(spatial_path)
+sc_count <- as.matrix(sc_obj@assays$RNA@counts)
+spatial_count <- as.matrix(spatial_obj@assays$RNA@counts)
+spatial_location <- data.frame(colnames(spatial_obj))
+spatial_location <- data.frame(spatial_obj@meta.data)
+
+cellType <-  sc_obj@meta.data[,celltype_final]
+    
+sc_count <- as.matrix(sc_count)
+spatial_count <- as.matrix(spatial_count)
+    
+single.ref = ref.build(sc_count,
+                   cellType,
+                   genes=intersect(rownames(spatial_count),rownames(sc_count)),
+                   normalize = "None",
+                   multi.sample.bulk = TRUE,
+                   multi.sample.single = TRUE,
+                   nbootsids=5, 
+                   minbootsize=50,
+                   silent = FALSE)
+
+print("single cell ref done")
+st_count_ma=as.matrix(spatial_count)
+st_count_ma = st_count_ma[intersect(rownames(st_count_ma),rownames(sc_count)),]
+
+registerDoSEQ()
+result=AdRoit.est(
+     st_count_ma,
+     single.ref,
+     use.refvar = FALSE,
+     per.sample.adapt = FALSE,
+     silent = TRUE)
+
+}

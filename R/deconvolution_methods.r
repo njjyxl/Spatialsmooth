@@ -1,10 +1,11 @@
 #' Run CARD deconvolution method
 #'
+#' @import CARD
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output
 #' @param celltype_final Column name in sc_obj@meta.data containing cell type information
-#' @return CARD object
+#' @return CARD_result
 #' @export
 run_card <- function(scrna_path, spatial_path, celltype_final, output_path) {
   sc_obj <- LoadH5Seurat(scrna_path)
@@ -34,6 +35,7 @@ run_card <- function(scrna_path, spatial_path, celltype_final, output_path) {
 
 #' Run RCTD deconvolution method
 #'
+#' @import spacexr
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output
@@ -99,6 +101,7 @@ run_rctd <- function(scrna_path, spatial_path, celltype_final, output_path) {
 
 #' Run SPOTlight deconvolution method
 #'
+#' @import SPOTlight
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output
@@ -109,7 +112,7 @@ run_spotlight <- function(scrna_path, spatial_path, celltype_final, output_path)
   sc <- LoadH5Seurat(scrna_path)
   st <- LoadH5Seurat(spatial_path)
 
-  set.seed(123)
+  #set.seed(123)
   sc <- Seurat::SCTransform(sc, verbose = FALSE)
 
   Idents(sc) <- sc@meta.data[,celltype_final]
@@ -142,6 +145,7 @@ run_spotlight <- function(scrna_path, spatial_path, celltype_final, output_path)
 
 #' Run SpatialDWLS deconvolution method
 #'
+#' @import Giotto
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param python_path Path to Python executable
@@ -164,8 +168,8 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
   gene_metadatas <- data.frame(gene_metadata)
   featgenes <- gene_metadatas[gene_metadatas$hvg == 'yes', "gene_ID"]
 
-  st_data <- runPCA(gobject = st_data, genes_to_use = featgenes, scale_unit = F)
-  signPCA(st_data, genes_to_use = featgenes, scale_unit = F)
+  st_data <- runPCA(gobject = st_data, genes_to_use = featgenes, scale_unit = FALSE)
+  signPCA(st_data, genes_to_use = featgenes, scale_unit = FALSE)
   st_data <- runUMAP(st_data, dimensions_to_use = 1:10)
   st_data <- createNearestNetwork(gobject = st_data, dimensions_to_use = 1:10, k = 15)
   st_data <- doLeidenCluster(gobject = st_data, resolution = 0.4, n_iterations = 1000)
@@ -179,8 +183,8 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
   gene_metadata = fDataDT(sc_data)
   gene_metadatas <- data.frame(gene_metadata)
   featgenes <- gene_metadatas[gene_metadatas$hvg == 'yes', "gene_ID"]
-  sc_data <- runPCA(gobject = sc_data, genes_to_use = featgenes, scale_unit = F)
-  signPCA(sc_data, genes_to_use = featgenes, scale_unit = F)
+  sc_data <- runPCA(gobject = sc_data, genes_to_use = featgenes, scale_unit = FALSE)
+  signPCA(sc_data, genes_to_use = featgenes, scale_unit = FALSE)
   sc_data@cell_metadata$leiden_clus <- as.character(sc_obj@meta.data[,celltype_final])
   
   gini_markers_subclusters = findMarkers_one_vs_all(gobject = sc_data,
@@ -216,6 +220,7 @@ run_spatialdwls <- function(scrna_path, spatial_path, celltype_final, python_pat
 }
 #' Run AdRoit deconvolution method
 #'
+#' @import AdRoit
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output
@@ -241,11 +246,11 @@ run_adroit <- function(scrna_path, spatial_path, celltype_final, output_path) {
                        cellType,
                        genes=intersect(rownames(spatial_count),rownames(sc_count)),
                        normalize = "None",
-                       multi.sample.bulk = T,
-                       multi.sample.single = T,
+                       multi.sample.bulk = TRUE,
+                       multi.sample.single = TRUE,
                        nbootsids=5, 
                        minbootsize=50,
-                       silent = F)
+                       silent = FALSE)
 
     print("single cell ref done")
     st_count_ma=as.matrix(spatial_count)
@@ -259,13 +264,14 @@ run_adroit <- function(scrna_path, spatial_path, celltype_final, output_path) {
          per.sample.adapt = FALSE,
          silent = TRUE)
 
-    results=t(result%>% as.data.frame(check.names=F))%>% as.data.frame(check.names=F)
+    results=t(result%>% as.data.frame(check.names=FALSE))%>% as.data.frame(check.names=FALSE)
     AdRoit_result <- results
     save(AdRoit_result,file = file.path(output_path,"AdRoit_result.Rdata"))
 }
 
 #' Run Seurat deconvolution method
 #'
+#' @import Seurat
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output
@@ -293,6 +299,7 @@ run_seurat <- function(scrna_path, spatial_path, celltype_final, output_path) {
 
 #' Run Redeconve deconvolution method
 #'
+#' @import Redeconve
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output
@@ -313,11 +320,11 @@ run_redeconve <- function(scrna_path, spatial_path, celltype_final, output_path)
     cellType <- cellType[, c("barcodes", colnames(cellType)[-ncol(cellType)])]
     
     ## get reference
-    ref <- get.ref(sc_count, cellType, dopar = F)
+    ref <- get.ref(sc_count, cellType, dopar = FALSE)
   
     
     ## deconvolution
-    res.ct <- deconvoluting(ref, spatial_count, genemode = "def", hpmode = "auto", dopar = T, ncores = 8)
+    res.ct <- deconvoluting(ref, spatial_count, genemode = "def", hpmode = "auto", dopar = TRUE, ncores = 8)
     res.prop <- to.proportion(res.ct)
     Redeconve_result <- t(res.prop)
     save(Redeconve_result, file = file.path(output_path, "Redeconve_result.Rdata"))
@@ -325,6 +332,7 @@ run_redeconve <- function(scrna_path, spatial_path, celltype_final, output_path)
                           
 #' Run SpatialDecon deconvolution method
 #'
+#' @import SpatialDecon
 #' @param scrna_path Path to scRNA-seq data
 #' @param spatial_path Path to spatial transcriptomics data
 #' @param output_path Path to save output

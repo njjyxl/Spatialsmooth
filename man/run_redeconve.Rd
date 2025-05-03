@@ -21,3 +21,31 @@ Redeconve result
 \description{
 Run Redeconve deconvolution method
 }
+\examples{
+scrna_path = './sc_rna.h5seurat'
+spatial_path = './st_data.h5seurat'
+celltype_final = 'celltype'
+output_path = 'output/'
+
+sc_obj <- LoadH5Seurat(scrna_path)
+spatial_obj <- LoadH5Seurat(spatial_path)
+sc_count <- as.matrix(sc_obj@assays$RNA@counts)
+spatial_count <- as.matrix(spatial_obj@assays$RNA@counts)
+spatial_location <- data.frame(colnames(spatial_obj))
+spatial_location <- data.frame(spatial_obj@meta.data)
+    
+colnames(spatial_location) <- c('x', 'y')
+cellType <-  sc_obj@meta.data
+cellType$barcodes <- rownames(cellType)
+cellType <- cellType[, c("barcodes", colnames(cellType)[-ncol(cellType)])]
+    
+## get reference
+ref <- get.ref(sc_count, cellType, dopar = FALSE)
+  
+    
+## deconvolution
+res.ct <- deconvoluting(ref, spatial_count, genemode = "def", hpmode = "auto", dopar = TRUE, ncores = 8)
+res.prop <- to.proportion(res.ct)
+Redeconve_result <- t(res.prop)
+save(Redeconve_result, file = file.path(output_path, "Redeconve_result.Rdata"))
+}

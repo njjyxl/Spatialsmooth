@@ -2,39 +2,31 @@ Package: Spatialsmooth
 Title: Spatial Transcriptomics Deconvolution Methods and Spatial smooth
 Version: 0.99.0
 Authors@R: person("njj", "yx", email = "njjyxl1006@gmail.com", role = c("aut", "cre"))
-Description: This package provides functions to run various spatial transcriptomics deconvolution methods including CARD, RCTD, SPOTlight, SpatialDWLS,AdRoit,Seurat and Redeconve.
+Description: Spatialsmooth provides a toolset for spatial transcriptomics data analysis, focusing on spatial smoothing of deconvolution results. The package integrates the results of multiple deconvolution algorithms for spatial smoothing of cell type proportions through neural network modeling to improve the accuracy of cell type inference in spatial transcriptomics data. The package provides functions to run various spatial transcriptomics deconvolution methods, including CARD, RCTD, SPOTlight, SpatialDWLS, AdRoit, Seurat, Redeconve, and SpatialDecon.
 Depends: R (>= 4.3.0)
 Imports:
-    tidyverse,
-    spacexr,
     Matrix,
-    data.table,
     Seurat (>= 4.4.0),
     SeuratDisk,
     CARD,
+    spacexr,
     Giotto,
     Redeconve,
     AdRoit,
     SPOTlight,
     SpatialDecon,
-    gstat,
-    parallel,
-    doParallel,
-    dplyr,
-    future,
-    spatialreg,
-    sp,
-    igraph,
-    fields,
     keras,
     tensorflow,
     reticulate,
-    foreach
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     BiocStyle
+biocViews:
+     GeneExpression,
+     Transcriptomics,
+     Spatial
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
