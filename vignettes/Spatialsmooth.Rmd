@@ -1,0 +1,154 @@
+---
+title: "Use of Spatialsmooth"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Use of Spatialsmooth in a Example dataset}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+### Installation  
+
+
+```{r installation, eval=FALSE}
+if(!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("Spatialsmooth")
+
+```
+
+### Overview  
+
+
+
+This subsection demonstrates how to use the Spatialsmooth package.  
+
+
+### Data preparation
+
+```{r setup}
+suppressMessages(library(CARD))
+suppressMessages(library(Seurat))
+suppressMessages(library(SeuratDisk))
+suppressMessages(library(spacexr))
+suppressMessages(library(Giotto))
+suppressMessages(library(SPOTlight))
+suppressMessages(library(Redeconve))
+suppressMessages(library(AdRoit))
+suppressMessages(library(SpatialDecon))
+suppressMessages(library(Spatialsmooth))
+```
+
+Now let's load our example data and examine it:  
+
+```{r loaddata}
+scrna_path = 'Example/sc_rna.h5seurat'
+spatial_path = 'Example/st_data.h5seurat'
+celltype_final = 'celltype'
+python_path = "your python path"
+output_path = 'output/'
+```
+
+The first is the deconvolution function, which has five parameters  
+  
+1.scrna_path Path to scRNA-seq data.  
+2.spatial_path Path to spatial transcriptomics data.  
+3.python_path Path to Python executable.  
+4.celltype_final Column name in sc_obj@meta.data containing cell type information.  
+5.output_path Directory to save output.  
+
+```{r run_deconvolution_methods}
+run_deconvolution_methods(scrna_path, spatial_path,celltype_final, python_path, output_path)
+```
+
+### smooth function
+Parameters in smooth_matrices  
+1.proportion_matrices A list of proportion matrices to be smoothed.  
+2.pos A data frame with x and y coordinates for each pixel.  
+3.n_pos_features Number of positional encoding features. Default is 16.  
+4.epochs Number of training epochs. Default is 4000.  
+5.batch_size Batch size for training. Default is 5.  
+6.cropping A list specifying the cropping parameters. Default is list(c(0, 9), c(9, 1)).
+
+```{r Spatialsmooth}
+Sys.setenv(RETICULATE_PYTHON = "your python path")  
+suppressMessages(library(Matrix))
+suppressMessages(library(Seurat))
+suppressMessages(library(SeuratDisk))
+suppressMessages(library(keras))
+suppressMessages(library(tensorflow))
+suppressMessages(library(reticulate))
+suppressMessages(library(Spatialsmooth))
+
+load("output/CARD_result.Rdata")
+CARD_matrix <- as.matrix(CARD_result)
+load("output/seqFISH+/RCTD_result.Rdata")
+RCTD_matrix <- as.matrix(RCTD_result)
+load("output/SPOTlight_result.Rdata")
+SPOTlight_matrix <- as.matrix(SPOTlight_result)
+load("output/SpatialDWLS_result.Rdata")
+SpatialDWLS_matrix <- as.matrix(SpatialDWLS_result)
+load(file = 'output/pos.Rdata')
+
+# Make the column names of the matrix names the same
+colnames(SPOTlight_matrix) = gsub("\\.", "_", colnames(SPOTlight_matrix))
+
+CARD_matrix <- CARD_matrix[,colnames(RCTD_matrix)]
+SPOTlight_matrix <- SPOTlight_matrix[,colnames(RCTD_matrix)]
+SpatialDWLS_matrix <- SpatialDWLS_matrix[,colnames(RCTD_matrix)]
+
+
+row_names <- rownames(SpatialDWLS_matrix)
+col_names <- colnames(SpatialDWLS_matrix)
+SpatialDWLS_matrix <- matrix(as.numeric(SpatialDWLS_matrix), nrow = nrow(SpatialDWLS_matrix), ncol = ncol(SpatialDWLS_matrix))
+rownames(SpatialDWLS_matrix) <- row_names
+colnames(SpatialDWLS_matrix) <- col_names
+
+# Prepare data
+proportion_matrices <- list(CARD_matrix, RCTD_matrix, SPOTlight_matrix, SpatialDWLS_matrix)
+
+result <- smooth_multiple_matrices(
+  proportion_matrices, 
+  pos,
+  epochs = 4000,
+  batch_size = 5,
+  cropping = list(c(0, 9), c(9, 1))  # Custom Cropping Parameters
+)
+
+# Get trained models and training history
+trained_model <- result$model
+training_history <- result$history
+# smoothed_matrices <- result$smoothed_matrices
+smoothed_matrix <- result$smoothed_matrices
+plot(training_history)
+
+
+smoothed_matrix
+save(smoothed_matrix, file = "output/smoothed_matrix.RData")
+```
+
+### Add new method function
+```{r Add method}
+run_menthod_name <- function(scrna_path, spatial_path, celltype_final, output_path) {
+    #Deconvolution logic
+    save(deconvolution_result, file = file.path(output_path, "deconvolution_result.Rdata"))
+}
+```
+
+```{r Define registration information}
+registered_methods <- list(
+  Deconvolution_method = list(
+    function_name = "run_method",  # Function name (string)
+    use_python = FALSE,              # Whether to use Python
+    packages = c("reticulate")      # Additional R packages required,such as, reticulate
+  )
+)
+```
