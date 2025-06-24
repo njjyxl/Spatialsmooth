@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Spatialsmooth  
 *A Spatially-Aware Convolutional Autoencoder Framework for Enhanced Deconvolution of Spatial Transcriptomics Data*  
 ![](https://github.com/njjyxl/Spatialsmooth/blob/devel/inst/images/Spatialsmooth.jpg)  
@@ -26,8 +25,3 @@ The R package has been installed successfully on Operating systems:
 All feedback, bug reports and suggestions are warmly welcomed! Please make sure to raise issues with a detailed and reproducible exmple and also please provide the output of your sessionInfo() in R!  
 # How to use Spatialsmooth  
 Detail in inst/scripts file
-
-
-=======
-# Spatialsmooth
->>>>>>> 547b8c165474b86f49d51fe3b7d9833e22311bc4
