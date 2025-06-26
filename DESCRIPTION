@@ -20,7 +20,11 @@ Suggests:
 biocViews:
      GeneExpression,
      Transcriptomics,
-     Spatial
+     Spatial,
+     SingleCell,
+     NetworkInference,
+     Network,
+     NeuralNetwork
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

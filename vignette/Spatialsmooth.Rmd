@@ -50,11 +50,11 @@ suppressMessages(library(Spatialsmooth))
 Now let's load our example data and examine it:  
 
 ```{r loaddata}
-scrna_path = 'Example/sc_rna.h5seurat'
-spatial_path = 'Example/st_data.h5seurat'
+scrna_path = 'sc_rna.h5seurat'
+spatial_path = 'st_data.h5seurat'
 celltype_final = 'celltype'
-python_path = "your python path"
-output_path = 'output/'
+python_path = "your python path"   #We recommend using conda.
+output_path = 'output/'     #output_path does not need to be defined in advance; save to a temporary directory.
 ```
 
 The first is the deconvolution function, which has five parameters  
@@ -127,12 +127,12 @@ result <- smooth_multiple_matrices(
 trained_model <- result$model
 training_history <- result$history
 # smoothed_matrices <- result$smoothed_matrices
-smoothed_matrix <- result$smoothed_matrices
+smooth_result <- result$smoothed_matrices
 plot(training_history)
 
 
-smoothed_matrix
-save(smoothed_matrix, file = "output/smoothed_matrix.RData")
+smooth_result
+save(smooth_result, file = "output/smooth_result.RData")
 ```
 
 ### Add new method function

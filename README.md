@@ -24,4 +24,4 @@ The R package has been installed successfully on Operating systems:
 # Issues  
 All feedback, bug reports and suggestions are warmly welcomed! Please make sure to raise issues with a detailed and reproducible exmple and also please provide the output of your sessionInfo() in R!  
 # How to use Spatialsmooth  
-Detail in inst/scripts file
+Detail in vignette file
